@@ -13,12 +13,14 @@
 #include <cstring>
 #include <thread>
 #include <mutex>
+#include <condition_variable>
 namespace gif643 {
 
 const size_t    BPP         = 4;    // Bytes per pixel
 const float     ORG_WIDTH   = 48.0; // Original SVG image width in px.
 const int       NUM_THREADS = 20;    // Default value, changed by argv. 
 std::mutex mutex1;
+std::condition_variable cv;
 using PNGDataVec = std::vector<char>;
 using PNGDataPtr = std::shared_ptr<PNGDataVec>;
 
@@ -329,8 +331,8 @@ public:
         TaskDef def;
         if (parse(line_org, def)) {
             std::cerr << "Queueing task '" << line_org << "'." << std::endl;
-            std::lock_guard<std::mutex> guard(mutex1);
             task_queue_.push(def);
+            cv.notify_one();
         }
     }
 
@@ -345,16 +347,13 @@ private:
     void processQueue()
     {
         while (should_run_) {
-            mutex1.lock();
-            if (!task_queue_.empty()) {
-                
-                TaskDef task_def = task_queue_.front();
-                task_queue_.pop();
-                mutex1.unlock();
-                TaskRunner runner(task_def,png_cache_);
-                runner();
-            }
+            std::unique_lock<std::mutex> lock(mutex1);
+            cv.wait(lock, [this]{return !task_queue_.empty();});
+            TaskDef task_def = task_queue_.front();
+            task_queue_.pop();
             mutex1.unlock();
+            TaskRunner runner(task_def,png_cache_);
+            runner();
         }
     }
 };
@@ -366,8 +365,10 @@ int main(int argc, char** argv)
     using namespace gif643;
 
     std::ifstream file_in;
+    int num_threads = NUM_THREADS;
+    std::string argv1 = argv[1];
 
-    if (argc >= 2 && (strcmp(argv[1], "-") != 0)) {
+    if (argc >= 2 && (strcmp(argv[1], "-") != 0) && argv1.length() > 1) {
         file_in.open(argv[1]);
         if (file_in.is_open()) {
             std::cin.rdbuf(file_in.rdbuf());
@@ -378,12 +379,19 @@ int main(int argc, char** argv)
                         << "', using stdin (press CTRL-D for EOF)." 
                         << std::endl;
         }
+        if(argc == 3){
+            num_threads = std::stoi(argv[2]);
+        }
+    }
+    else if(argc == 2 && (strcmp(argv[1], "-") != 0)){
+        num_threads = std::stoi(argv[1]);
+        std::cerr << "Using stdin (press CTRL-D for EOF)." << std::endl;
     } else {
         std::cerr << "Using stdin (press CTRL-D for EOF)." << std::endl;
     }
 
-    // TODO: change the number of threads from args.
-    Processor proc;
+    std::cerr << "Launching "+std::to_string(num_threads)+" threads" << std::endl; 
+    Processor proc(num_threads);
     
     while (!std::cin.eof()) {
 
