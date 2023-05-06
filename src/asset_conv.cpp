@@ -87,6 +87,12 @@ public:
     {
         return png_data_;
     }
+
+    void setData(PNGDataPtr& a)
+    {
+        png_data_ = a;
+    }
+
 };
 
 /// \brief Task definition
@@ -112,11 +118,12 @@ class TaskRunner
 {
 private:
     TaskDef task_def_;
-
+    std::unordered_map<std::string, PNGDataPtr>* png_cache;
 public:
-    TaskRunner(const TaskDef& task_def):
+    TaskRunner(const TaskDef& task_def, std::unordered_map<std::string, PNGDataPtr>& png_cache_):
         task_def_(task_def)
     {
+        png_cache = &png_cache_;
     }
 
     void operator()()
@@ -138,6 +145,9 @@ public:
         NSVGrasterizer*     rast            = nullptr;
 
         try {
+            PNGWriter writer;
+            if (png_cache->find(fname_in + std::to_string(width)) == png_cache->end()){
+
             // Read the file ...
             image_in = nsvgParseFromFile(fname_in.c_str(), "px", 0);
             if (image_in == nullptr) {
@@ -159,14 +169,21 @@ public:
                           stride); 
 
             // Compress it ...
-            PNGWriter writer;
-            writer(width, height, BPP, &image_data[0], stride);
+           
+              writer(width, height, BPP, &image_data[0], stride);
+              (*png_cache)[fname_in + std::to_string(width)] =  writer.getData();
+    
+              std::cerr << "not"<< std::endl;
+            } else{
+                writer.setData((*png_cache)[fname_in + std::to_string(width)]);
+                std::cerr << "Already/n";
+            }
+            
 
             // Write it out ...
             std::ofstream file_out(fname_out, std::ofstream::binary);
             auto data = writer.getData();
             file_out.write(&(data->front()), data->size());
-            
         } catch (std::runtime_error e) {
             std::cerr << "Exception while processing "
                       << fname_in
@@ -296,7 +313,7 @@ public:
     {
         TaskDef def;
         if (parse(line_org, def)) {
-            TaskRunner runner(def);
+            TaskRunner runner(def,png_cache_);
             runner();
         }
     }
@@ -333,7 +350,7 @@ private:
                 TaskDef task_def = task_queue_.front();
                 task_queue_.pop();
                 mutex1.unlock();
-                TaskRunner runner(task_def);
+                TaskRunner runner(task_def,png_cache_);
                 runner();
             }
             mutex1.unlock();
