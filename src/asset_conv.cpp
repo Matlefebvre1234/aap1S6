@@ -146,8 +146,9 @@ public:
 
         try {
             PNGWriter writer;
+            mutex1.lock();
             if (png_cache->find(fname_in + std::to_string(width)) == png_cache->end()){
-
+             mutex1.unlock();
             // Read the file ...
             image_in = nsvgParseFromFile(fname_in.c_str(), "px", 0);
             if (image_in == nullptr) {
@@ -171,12 +172,12 @@ public:
             // Compress it ...
            
               writer(width, height, BPP, &image_data[0], stride);
+              mutex1.lock();
               (*png_cache)[fname_in + std::to_string(width)] =  writer.getData();
-    
-              std::cerr << "not"<< std::endl;
+              mutex1.unlock();
             } else{
+                mutex1.unlock();
                 writer.setData((*png_cache)[fname_in + std::to_string(width)]);
-                std::cerr << "Already/n";
             }
             
 

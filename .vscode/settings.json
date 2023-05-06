@@ -1,7 +1,5 @@
 {
     "files.associations": {
-        "thread": "cpp",
-        "type_traits": "cpp",
         "array": "cpp",
         "atomic": "cpp",
         "bit": "cpp",
@@ -38,6 +36,7 @@
         "string_view": "cpp",
         "system_error": "cpp",
         "tuple": "cpp",
+        "type_traits": "cpp",
         "utility": "cpp",
         "fstream": "cpp",
         "initializer_list": "cpp",
@@ -53,6 +52,7 @@
         "stdexcept": "cpp",
         "stop_token": "cpp",
         "streambuf": "cpp",
+        "thread": "cpp",
         "typeinfo": "cpp"
     }
 }
