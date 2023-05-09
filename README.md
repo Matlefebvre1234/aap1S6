@@ -51,7 +51,7 @@ pouvez donc faire :
 
 ```
 mkdir output/
-../scripts/gen_tasks.py ../data ./output/ 480 | ./ 5
+../scripts/gen_tasks.py ../data ./output/ 480 | ./asset_conv 5
 ```
 
 Pour convertir toutes les images dans data/ vers le dossier build/output/ à une

@@ -18,7 +18,7 @@ namespace gif643 {
 
 const size_t    BPP         = 4;    // Bytes per pixel
 const float     ORG_WIDTH   = 48.0; // Original SVG image width in px.
-const int       NUM_THREADS = 20;    // Default value, changed by argv. 
+const int       NUM_THREADS = 4;    // Default value, changed by argv. 
 std::mutex mutex1;
 std::condition_variable cv;
 using PNGDataVec = std::vector<char>;
@@ -186,7 +186,9 @@ public:
             // Write it out ...
             std::ofstream file_out(fname_out, std::ofstream::binary);
             auto data = writer.getData();
+            mutex1.lock();
             file_out.write(&(data->front()), data->size());
+            mutex1.unlock();
         } catch (std::runtime_error e) {
             std::cerr << "Exception while processing "
                       << fname_in

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Assumes this is run in the build/ folder.
 
-export NUM_THREAD=4
+export NUM_THREAD=1
 
 mkdir -p output
 time ../scripts/gen_tasks.py ../data ./output/ 480 | ./asset_conv $NUM_THREAD
